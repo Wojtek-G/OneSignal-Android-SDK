@@ -926,8 +926,8 @@ public class OneSignal {
    private static void startLocationUpdate() {
       LocationGMS.LocationHandler locationHandler = new LocationGMS.LocationHandler() {
          @Override
-         public LocationGMS.CALLBACK_TYPE getType() {
-            return LocationGMS.CALLBACK_TYPE.STARTUP;
+         public LocationGMS.PermissionType getType() {
+            return LocationGMS.PermissionType.STARTUP;
          }
          @Override
          public void complete(LocationGMS.LocationPoint point) {
@@ -2469,7 +2469,7 @@ public class OneSignal {
       promptLocation(null);
    }
 
-   static void promptLocation(@Nullable final OperationCompletedCallback callback) {
+   static void promptLocation(@Nullable final OSPromptActionCompletionCallback callback) {
       //if applicable, check if the user provided privacy consent
       if (shouldLogUserPrivacyConsentErrorMessageForMethodName("promptLocation()"))
          return;
@@ -2477,22 +2477,26 @@ public class OneSignal {
       Runnable runPromptLocation = new Runnable() {
          @Override
          public void run() {
-            LocationGMS.LocationHandler locationHandler = new LocationGMS.LocationHandler() {
+            LocationGMS.LocationHandler locationHandler = new LocationGMS.LocationPromptCompletionHandler() {
                @Override
-               public LocationGMS.CALLBACK_TYPE getType() {
-                  return LocationGMS.CALLBACK_TYPE.PROMPT_LOCATION;
+               public LocationGMS.PermissionType getType() {
+                  return LocationGMS.PermissionType.PROMPT_LOCATION;
                }
                @Override
                public void complete(LocationGMS.LocationPoint point) {
-                  if (callback != null) {
-                     callback.completed(point != null);
-                  }
                   //if applicable, check if the user provided privacy consent
                   if (shouldLogUserPrivacyConsentErrorMessageForMethodName("promptLocation()"))
                      return;
 
                   if (point != null)
                      OneSignalStateSynchronizer.updateLocation(point);
+               }
+
+               @Override
+               void onAnswered(boolean accepted) {
+                  super.onAnswered(accepted);
+                  if (callback != null)
+                     callback.completed(accepted);
                }
             };
 
@@ -3212,7 +3216,7 @@ public class OneSignal {
     * End OneSignalOutcome module
     */
 
-   interface OperationCompletedCallback {
-      void completed(boolean result);
+   interface OSPromptActionCompletionCallback {
+      void completed(boolean accepted);
    }
 }
